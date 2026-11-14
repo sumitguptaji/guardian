@@ -19,14 +19,12 @@ import androidx.core.content.ContextCompat
  */
 class MainActivity : AppCompatActivity() {
 
-    private val perms = buildList {
-        add(Manifest.permission.READ_CALL_LOG)
-        add(Manifest.permission.READ_CONTACTS)
-        add(Manifest.permission.READ_SMS)
-        add(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            add(Manifest.permission.POST_NOTIFICATIONS)
-    }.toTypedArray()
+    private val perms = arrayOf(
+        Manifest.permission.READ_CALL_LOG,
+        Manifest.permission.READ_CONTACTS,
+        Manifest.permission.READ_SMS,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,8 +76,20 @@ class MainActivity : AppCompatActivity() {
         val battery = Button(this).apply {
             text = "Allow to run in background (battery)"
             setOnClickListener {
-                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                    Uri.parse("package:$packageName")))
+                // Direct "allow?" dialog first; fall back to the battery list, then
+                // to this app's details page - one of these exists on every device.
+                val intents = listOf(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:$packageName")),
+                    Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName"))
+                )
+                val opened = intents.any {
+                    try { startActivity(it); true } catch (_: Exception) { false }
+                }
+                status.text = if (opened) "Opened battery settings - set Guardian to unrestricted."
+                              else "Open Settings > Apps > Guardian > Battery and set it to unrestricted."
             }
         }
         val start = Button(this).apply {
