@@ -1,0 +1,59 @@
+name: Build Guardian APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
+
+      - name: Upload APK artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: ignore
+
+      # Publish APK (or the build log on failure) to a dedicated branch so it can
+      # be fetched over plain git - this is how the APK gets back to Claude.
+      - name: Publish outputs to ci-output branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out
+          cp android/app/build/outputs/apk/debug/app-debug.apk /tmp/out/ 2>/dev/null || echo "build produced no APK" > /tmp/out/NO_APK.txt
+          cp "$GITHUB_WORKSPACE/build.log" /tmp/out/ 2>/dev/null || true
+          git config user.email "ci@guardian.local"
+          git config user.name "guardian-ci"
+          git checkout --orphan ci-output
+          git reset --hard 2>/dev/null || true
+          git rm -rf . 2>/dev/null || true
+          rm -rf ./* ./.github 2>/dev/null || true
+          cp /tmp/out/* .
+          git add -A
+          git commit -m "CI output for ${GITHUB_SHA}"
+          git push -f origin ci-output
