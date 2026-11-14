@@ -55,12 +55,21 @@ class ReportWorker(ctx: Context, p: WorkerParameters) : Worker(ctx, p) {
         val from = cfg.watermark(type, now - defaultSpan)
         if (from >= now) return Result.success()
 
+        // Skip sending when the window has no activity at all; advance the
+        // watermark so the next window simply starts here. Nothing is lost.
+        val store = Store(applicationContext)
+        val total = store.window("calls", from, now).size +
+                    store.window("sms", from, now).size +
+                    store.window("notifs", from, now).size +
+                    store.window("locs", from, now).size
+        if (total == 0) { cfg.setWatermark(type, now); return Result.success() }
+
         val label = if (type == "daily") "Daily report" else "4-hourly report"
         return try {
             val pdf = ReportBuilder.build(applicationContext, label, from, now)
-            val subject = "Guardian - $label - ${range(from, now)}"
+            val subject = "Lockkout - $label - ${range(from, now)}"
             Mailer.send(cfg, subject,
-                "Automated $label from Guardian. Window ${range(from, now)} IST. " +
+                "Automated $label from Lockkout. Window ${range(from, now)} IST. " +
                 "Details attached as PDF.", pdf)
             pdf.delete()
             cfg.setWatermark(type, now)   // advance only on success
