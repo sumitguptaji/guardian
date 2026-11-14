@@ -60,7 +60,8 @@ class MainActivity : AppCompatActivity() {
                 cfg.toEmail = to.text.toString().trim()
                 cfg.dailyHour = hour.text.toString().toIntOrNull() ?: 8
                 cfg.sendSmsBody = smsBody.isChecked
-                status.text = "Saved."
+                Scheduler.scheduleAll(this@MainActivity)   // re-arm with the new daily hour
+                status.text = "Saved and reports rescheduled (daily at ${cfg.dailyHour}:00)."
             }
         }
         val grant = Button(this).apply {
@@ -105,12 +106,35 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val test = Button(this).apply {
+            text = "Send test report now"
+            setOnClickListener {
+                status.text = "Sending test report..."
+                Thread {
+                    val cfg = Config(this@MainActivity)
+                    val msg = try {
+                        Collectors.collectAll(this@MainActivity)
+                        val now = System.currentTimeMillis()
+                        val pdf = ReportBuilder.build(this@MainActivity,
+                            "Test report", now - 24 * 3600_000L, now)
+                        Mailer.send(cfg, "Lockkout - TEST report",
+                            "This is a manual test from Lockkout.", pdf)
+                        pdf.delete()
+                        "Test report sent to ${cfg.toEmail}. Check inbox/spam."
+                    } catch (e: Exception) {
+                        "Send FAILED: ${e.javaClass.simpleName}: ${e.message}"
+                    }
+                    runOnUiThread { status.text = msg }
+                }.start()
+            }
+        }
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(40, 50, 40, 50)
             addView(TextView(this@MainActivity).apply { text = "Lockkout"; textSize = 24f })
             listOf(host, port, user, pass, from, to, hour).forEach(::addView)
             addView(smsBody); addView(save); addView(grant)
-            addView(notifAccess); addView(battery); addView(start); addView(status)
+            addView(notifAccess); addView(battery); addView(start); addView(test); addView(status)
         }
         setContentView(ScrollView(this).apply { addView(root) })
     }
