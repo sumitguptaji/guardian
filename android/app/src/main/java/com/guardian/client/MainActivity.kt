@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(40, 50, 40, 50)
-            addView(TextView(this@MainActivity).apply { text = "Guardian"; textSize = 24f })
+            addView(TextView(this@MainActivity).apply { text = "Lockkout"; textSize = 24f })
             listOf(host, port, user, pass, from, to, hour).forEach(::addView)
             addView(smsBody); addView(save); addView(grant)
             addView(notifAccess); addView(battery); addView(start); addView(status)
