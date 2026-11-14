@@ -44,6 +44,9 @@ class Config(ctx: Context) {
     var sendSmsBody: Boolean get() = s("sms_body", "true") == "true"
         set(v) = put("sms_body", v.toString())
 
+    // Optional PIN that gates the settings screen. Blank = no lock.
+    var pin: String get() = s("pin"); set(v) = put("pin", v)
+
     val configured: Boolean
         get() = smtpUser.isNotBlank() && smtpPass.isNotBlank() &&
                 fromEmail.isNotBlank() && toEmail.isNotBlank()
