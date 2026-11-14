@@ -49,9 +49,7 @@ class MainActivity : AppCompatActivity() {
         val smsBody = CheckBox(this).apply {
             text = "Include full SMS text"; isChecked = cfg.sendSmsBody
         }
-        val status = TextView(this).apply {
-            text = "Monitoring is always visible on this phone."
-        }
+        val status = TextView(this).apply { text = "Guardian setup" }
 
         val save = Button(this).apply {
             text = "Save settings"
@@ -92,10 +90,8 @@ class MainActivity : AppCompatActivity() {
                         PackageManager.PERMISSION_GRANTED
                 }
                 if (missing) { status.text = "Grant permissions first."; return@setOnClickListener }
-                ContextCompat.startForegroundService(
-                    this@MainActivity, Intent(this@MainActivity, MonitorService::class.java))
                 Scheduler.scheduleAll(this@MainActivity)
-                status.text = "Monitoring started. Daily + 4-hourly reports scheduled."
+                status.text = "Started. Daily + 4-hourly reports scheduled."
             }
         }
 
