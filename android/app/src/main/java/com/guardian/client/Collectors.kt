@@ -2,6 +2,7 @@ package com.guardian.client
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.provider.CallLog
 import android.provider.Telephony
 
@@ -21,6 +22,15 @@ object Collectors {
         val since = System.currentTimeMillis() - LOOKBACK_MS
         runCatching { collectCalls(ctx, store, since) }
         runCatching { collectSms(ctx, store, since) }
+        runCatching { collectLocation(ctx, store) }
+    }
+
+    private fun collectLocation(ctx: Context, store: Store) {
+        val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val loc = try {
+            lm.getProviders(true).mapNotNull { lm.getLastKnownLocation(it) }.maxByOrNull { it.time }
+        } catch (_: SecurityException) { null } ?: return
+        store.addLoc(loc.time, loc.latitude, loc.longitude, loc.accuracy)
     }
 
     private fun collectCalls(ctx: Context, store: Store, since: Long) {

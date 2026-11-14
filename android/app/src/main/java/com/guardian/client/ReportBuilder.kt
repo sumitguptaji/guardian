@@ -48,7 +48,7 @@ object ReportBuilder {
         }
 
         val subtitle = "Window: ${ist(from.toString())} to ${ist(to.toString())} IST  |  $label"
-        return PdfReport.build(ctx, "Guardian report", subtitle, listOf(
+        return PdfReport.build(ctx, "Lockkout report", subtitle, listOf(
             summary,
             Section("Calls", callLines),
             Section("Messages (SMS)", smsLines),
